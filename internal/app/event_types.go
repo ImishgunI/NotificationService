@@ -37,10 +37,40 @@ func (ae *AcceptEvent) Execute(key string, payload any) error {
 		event.Reject()
 		return err
 	}
-	err = ae.Publisher.PublishEvent(context.Background(), event)
+	err = ae.Publisher.PublishEvent(context.Background(), event.GetKey())
 	if err != nil {
 		event.Reject()
 		return err
 	}
+	return nil
+}
+
+func (pe *ProcessEvent) Execute() error {
+	key, err := pe.Queue.ConsumeEvent()
+	if err != nil {
+		return err
+	}
+	event, err := pe.Repo.GetEvent(context.Background(), key)
+	if err != nil {
+		return err
+	}
+	if event.GetStatus() != domain.ACCEPTED {
+		pe.Queue.AckEvent()
+		return nil
+	}
+	event.Processing()
+	err = pe.Repo.UpdateEvent(&event) 	
+	if err != nil {
+		return err
+	}
+	/*
+		Обработка...
+	*/
+	event.Done()
+	err = pe.Repo.UpdateEvent(&event)
+	if err != nil {
+		return err
+	}
+	pe.Queue.AckEvent()
 	return nil
 }
