@@ -13,7 +13,7 @@ type IdempotencyStore interface {
 type EventRepository interface {
 	SaveEvent(ctx context.Context, e *domain.Event) error
 	GetEvent(ctx context.Context, key string) (domain.Event, error)
-	UpdateEvent(event *domain.Event) error 
+	UpdateEvent(event *domain.Event) error
 }
 
 type EventPublisher interface {
@@ -28,4 +28,8 @@ type EventQueue interface {
 	ConsumeEvent() (string, error)
 	AckEvent()
 	NackEvent()
+}
+
+type EventHandler interface {
+	Handle(event *domain.Event) error
 }
