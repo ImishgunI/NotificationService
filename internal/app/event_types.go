@@ -15,6 +15,7 @@ type ProcessEvent struct {
 	Repo      EventRepository
 	Queue     EventQueue
 	Publisher NotificationSender
+	Handler   EventHandler
 }
 
 func (ae *AcceptEvent) Execute(key string, payload any) error {
@@ -59,13 +60,18 @@ func (pe *ProcessEvent) Execute() error {
 		return nil
 	}
 	event.Processing()
-	err = pe.Repo.UpdateEvent(&event) 	
+	err = pe.Repo.UpdateEvent(&event)
 	if err != nil {
+		pe.Queue.NackEvent()
 		return err
 	}
-	/*
-		Обработка...
-	*/
+	err = pe.Handler.Handle(&event)
+	if err != nil {
+		event.Failed()
+		pe.Repo.UpdateEvent(&event)
+		pe.Queue.AckEvent()
+		return err
+	}
 	event.Done()
 	err = pe.Repo.UpdateEvent(&event)
 	if err != nil {
