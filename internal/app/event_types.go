@@ -30,17 +30,14 @@ func (ae *AcceptEvent) Execute(key string, payload any) error {
 	event.Accept()
 	err = ae.IdemStore.SaveKey(context.Background(), key)
 	if err != nil {
-		event.Reject()
 		return err
 	}
 	err = ae.Repo.SaveEvent(context.Background(), event)
 	if err != nil {
-		event.Reject()
 		return err
 	}
 	err = ae.Publisher.PublishEvent(context.Background(), event.GetKey())
 	if err != nil {
-		event.Reject()
 		return err
 	}
 	return nil
@@ -60,20 +57,34 @@ func (pe *ProcessEvent) Execute() error {
 		return nil
 	}
 	event.Processing()
-	err = pe.Repo.UpdateEvent(&event)
+	err = pe.Repo.UpdateEventStatus(event.GetStatus())
 	if err != nil {
 		pe.Queue.NackEvent()
 		return err
 	}
 	err = pe.Handler.Handle(&event)
 	if err != nil {
-		event.Failed()
-		pe.Repo.UpdateEvent(&event)
-		pe.Queue.AckEvent()
-		return err
+		switch err.(type) {
+			case domain.BusinessError:
+				event.Failed()
+				pe.Repo.UpdateEventStatus(event.GetStatus())
+				pe.Queue.AckEvent()
+				return nil
+			case domain.RetryableError:
+				pe.Queue.NackEvent()
+				return err
+			case domain.InfrasractureError:
+				event.Reject()
+				pe.Repo.UpdateEventStatus(event.GetStatus())
+				pe.Queue.AckEvent()
+				return nil
+			default:
+				pe.Queue.NackEvent()
+				return err
+		}	
 	}
 	event.Done()
-	err = pe.Repo.UpdateEvent(&event)
+	err = pe.Repo.UpdateEventStatus(event.GetStatus())
 	if err != nil {
 		return err
 	}
