@@ -18,7 +18,7 @@ func (e BusinessError) Error() string {
 
 func (r RetryableError) Error() string {
 	return r.Err.Error()
-} 
+}
 
 func (r RetryableError) Unwrap() error {
 	return r.Err
@@ -31,4 +31,3 @@ func (i InfrasractureError) Error() string {
 func (i InfrasractureError) Unwrap() error {
 	return i.Err
 }
-
