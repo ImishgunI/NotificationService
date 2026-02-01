@@ -50,7 +50,7 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func (q *RabbitQueue) PublishEvent(ctx context.Context, key string) error {	
+func (q *RabbitQueue) PublishEvent(ctx context.Context, key string) error {
 	err := q.ch.PublishWithContext(ctx, "", q.queue, false, false, amqp.Publishing{
 		ContentType: "text/plain",
 		Body:        []byte(key),
@@ -60,7 +60,7 @@ func (q *RabbitQueue) PublishEvent(ctx context.Context, key string) error {
 }
 
 func (q *RabbitQueue) ConsumeEvent(ctx context.Context) (string, error) {
-	msg, err := q.ch.ConsumeWithContext(ctx, q.queue, "", false, false, false, false, nil)		
+	msg, err := q.ch.ConsumeWithContext(ctx, q.queue, "", false, false, false, false, nil)
 	failOnError(err, "Failed to consume event")
 	q.msg = <-msg
 	return string(q.msg.Body), nil
