@@ -12,10 +12,9 @@ type AcceptEvent struct {
 }
 
 type ProcessEvent struct {
-	Repo      EventRepository
-	Queue     EventQueue
-	Publisher NotificationSender
-	Handler   EventHandler
+	Repo    EventRepository
+	Queue   EventQueue
+	Handler EventHandler
 }
 
 func (ae *AcceptEvent) Execute(key string, payload any) error {
@@ -44,7 +43,7 @@ func (ae *AcceptEvent) Execute(key string, payload any) error {
 }
 
 func (pe *ProcessEvent) Execute() error {
-	key, err := pe.Queue.ConsumeEvent()
+	key, err := pe.Queue.ConsumeEvent(context.Background())
 	if err != nil {
 		return err
 	}
@@ -65,23 +64,23 @@ func (pe *ProcessEvent) Execute() error {
 	err = pe.Handler.Handle(&event)
 	if err != nil {
 		switch err.(type) {
-			case domain.BusinessError:
-				event.Failed()
-				pe.Repo.UpdateEventStatus(event.GetStatus())
-				pe.Queue.AckEvent()
-				return nil
-			case domain.RetryableError:
-				pe.Queue.NackEvent()
-				return err
-			case domain.InfrasractureError:
-				event.Reject()
-				pe.Repo.UpdateEventStatus(event.GetStatus())
-				pe.Queue.AckEvent()
-				return nil
-			default:
-				pe.Queue.NackEvent()
-				return err
-		}	
+		case domain.BusinessError:
+			event.Failed()
+			pe.Repo.UpdateEventStatus(event.GetStatus())
+			pe.Queue.AckEvent()
+			return nil
+		case domain.RetryableError:
+			pe.Queue.NackEvent()
+			return err
+		case domain.InfrasractureError:
+			event.Reject()
+			pe.Repo.UpdateEventStatus(event.GetStatus())
+			pe.Queue.AckEvent()
+			return nil
+		default:
+			pe.Queue.NackEvent()
+			return err
+		}
 	}
 	event.Done()
 	err = pe.Repo.UpdateEventStatus(event.GetStatus())
