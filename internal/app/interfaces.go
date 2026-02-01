@@ -20,12 +20,8 @@ type EventPublisher interface {
 	PublishEvent(ctx context.Context, key string) error
 }
 
-type NotificationSender interface {
-	PublishNotification()
-}
-
 type EventQueue interface {
-	ConsumeEvent() (string, error)
+	ConsumeEvent(ctx context.Context) (string, error)
 	AckEvent() error
 	NackEvent() error
 }
