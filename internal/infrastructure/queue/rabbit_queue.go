@@ -65,3 +65,15 @@ func (q *RabbitQueue) ConsumeEvent(ctx context.Context) (string, error) {
 	q.msg = <-msg
 	return string(q.msg.Body), nil
 }
+
+func (q *RabbitQueue) AckEvent() error {
+	err := q.msg.Ack(false)
+	failOnError(err, "Failed to acknowleged event")
+	return nil
+} 
+
+func (q *RabbitQueue) NackEvent() error {
+	err := q.msg.Nack(false, true)
+	failOnError(err, "Failed to nacknowleged event")
+	return nil
+}
