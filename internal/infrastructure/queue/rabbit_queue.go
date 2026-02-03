@@ -70,7 +70,7 @@ func (q *RabbitQueue) AckEvent() error {
 	err := q.msg.Ack(false)
 	failOnError(err, "Failed to acknowleged event")
 	return nil
-} 
+}
 
 func (q *RabbitQueue) NackEvent() error {
 	err := q.msg.Nack(false, true)
