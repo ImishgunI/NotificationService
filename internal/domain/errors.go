@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 type BusinessError struct {
 	Reason string
 }
@@ -31,3 +33,9 @@ func (i InfrasractureError) Error() string {
 func (i InfrasractureError) Unwrap() error {
 	return i.Err
 }
+
+var (
+	ErrConsumeEvent = errors.New("Failed to consume event")
+	ErrAckEvent     = errors.New("Failed to ack event. DeliveryTag equals to zero")
+	ErrNackEvent    = errors.New("Failed to nack event. DeliveryTag equals to zero")
+)
