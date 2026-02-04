@@ -1,8 +1,9 @@
 package app
 
 import (
-	"NotificationService/internal/domain"
 	"context"
+
+	"NotificationService/internal/domain"
 )
 
 type IdempotencyStore interface {
