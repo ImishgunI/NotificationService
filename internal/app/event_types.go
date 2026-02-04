@@ -3,6 +3,7 @@ package app
 import (
 	"NotificationService/internal/domain"
 	"context"
+	"time"
 )
 
 type AcceptEvent struct {
@@ -35,7 +36,9 @@ func (ae *AcceptEvent) Execute(key string, payload any) error {
 	if err != nil {
 		return err
 	}
-	err = ae.Publisher.PublishEvent(context.Background(), event.GetKey())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err = ae.Publisher.PublishEvent(ctx, event.GetKey())
 	if err != nil {
 		return err
 	}
@@ -43,7 +46,9 @@ func (ae *AcceptEvent) Execute(key string, payload any) error {
 }
 
 func (pe *ProcessEvent) Execute() error {
-	key, err := pe.Queue.ConsumeEvent(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	key, err := pe.Queue.ConsumeEvent(ctx)
 	if err != nil {
 		return err
 	}
