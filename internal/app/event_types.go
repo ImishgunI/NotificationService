@@ -1,9 +1,10 @@
 package app
 
 import (
-	"NotificationService/internal/domain"
 	"context"
 	"time"
+
+	"NotificationService/internal/domain"
 )
 
 type AcceptEvent struct {
