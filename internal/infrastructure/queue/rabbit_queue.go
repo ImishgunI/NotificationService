@@ -3,50 +3,61 @@ package queue
 import (
 	_ "NotificationService/internal/app"
 	"context"
+	"errors"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 type RabbitQueue struct {
-	conn  *amqp.Connection
-	ch    *amqp.Channel
-	queue string
-	msg   amqp.Delivery
+	ch         *amqp.Channel
+	queue      string
+	deliveries <-chan amqp.Delivery
+	msg        amqp.Delivery
 }
 
-func NewRabbitQueue() *RabbitQueue {
-	conn := newConn()
-	chMq, err := conn.Channel()
-	failOnError(err, "Failed to create Channel")
-	queue, err := chMq.QueueDeclare("EventKeyQueue", false, false, false, false, nil)
-	failOnError(err, "Failed to declare a queue")
-	return &RabbitQueue{
-		conn:  conn,
-		ch:    chMq,
-		queue: queue.Name,
+func NewRabbitQueue(ch *amqp.Channel, queue string) (*RabbitQueue, error) {
+	if err := ch.Qos(1, 0, false); err != nil {
+		return nil, err
 	}
+	msgs, err := ch.Consume(
+		queue,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &RabbitQueue{
+		ch:         ch,
+		queue:      queue,
+		deliveries: msgs,
+	}, nil
 }
 
-func newConn() *amqp.Connection {
-	conn, err := amqp.Dial("")
-	failOnError(err, "Failed to connect to RabbitMQ")
+func newConn(connection string) *amqp.Connection {
+	conn, err := amqp.Dial(connection)
+	if err != nil {
+		return nil
+	}
 	return conn
 }
 
-func (q *RabbitQueue) CloseConnection() {
-	err := q.conn.Close()
-	failOnError(err, "Failed to close connection")
+func (q *RabbitQueue) CloseConnection(conn *amqp.Connection) {
+	err := conn.Close()
+	if err != nil {
+		log.Printf("Failed to close connection")
+	}
 }
 
 func (q *RabbitQueue) CloseChannel() {
 	err := q.ch.Close()
-	failOnError(err, "Failed to close channel")
-}
-
-func failOnError(err error, msg string) {
 	if err != nil {
-		log.Panicf("%s: %s", msg, err)
+		log.Printf("Failed to close channel")
 	}
 }
 
@@ -55,25 +66,43 @@ func (q *RabbitQueue) PublishEvent(ctx context.Context, key string) error {
 		ContentType: "text/plain",
 		Body:        []byte(key),
 	})
-	failOnError(err, "Failed to publish a message")
+	if err != nil {
+		return errors.New("Failed to publish event")
+	}
 	return nil
 }
 
 func (q *RabbitQueue) ConsumeEvent(ctx context.Context) (string, error) {
-	msg, err := q.ch.ConsumeWithContext(ctx, q.queue, "", false, false, false, false, nil)
-	failOnError(err, "Failed to consume event")
-	q.msg = <-msg
-	return string(q.msg.Body), nil
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case msg, ok := <-q.deliveries:
+		if !ok {
+			return "", errors.New("delivery channel closed")
+		}
+		q.msg = msg
+		return string(msg.Body), nil
+	}
 }
 
 func (q *RabbitQueue) AckEvent() error {
+	if q.msg.DeliveryTag == 0 {
+		return errors.New("No message to Ack")
+	}
 	err := q.msg.Ack(false)
-	failOnError(err, "Failed to acknowleged event")
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (q *RabbitQueue) NackEvent() error {
+	if q.msg.DeliveryTag == 0 {
+		return errors.New("No message to nack")
+	}
 	err := q.msg.Nack(false, true)
-	failOnError(err, "Failed to nacknowleged event")
+	if err != nil {
+		return err
+	}
 	return nil
 }
