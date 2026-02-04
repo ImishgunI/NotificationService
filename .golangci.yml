@@ -1,0 +1,41 @@
+version: "2"
+linters:
+  enable:
+    - bodyclose
+    - copyloopvar
+    - dogsled
+    - dupl
+    - dupword
+    - err113
+    - errcheck
+    - exptostd
+    - funcorder
+    - funlen
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - gosec
+    - iface
+    - lll
+    - nestif
+    - unparam
+    - unqueryvet
+    - usestdlibvars
+    - whitespace
+  settings:
+    copyloopvar:
+      check-alias: true
+    dupl:
+      threshold: 100
+    errcheck:
+      check-blank: true 
+    gocognit:
+      min-complexity: 10 
+    gocyclo:
+      min-complexity: 10 
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - golines
