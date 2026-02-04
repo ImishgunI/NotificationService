@@ -1,11 +1,11 @@
 package queue
 
 import (
-	_ "NotificationService/internal/app"
 	"context"
-	"errors"
+	"fmt"
 	"log"
 
+	"NotificationService/internal/domain"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -39,7 +39,7 @@ func NewRabbitQueue(ch *amqp.Channel, queue string) (*RabbitQueue, error) {
 	}, nil
 }
 
-func newConn(connection string) *amqp.Connection {
+func NewConn(connection string) *amqp.Connection {
 	conn, err := amqp.Dial(connection)
 	if err != nil {
 		return nil
@@ -67,7 +67,7 @@ func (q *RabbitQueue) PublishEvent(ctx context.Context, key string) error {
 		Body:        []byte(key),
 	})
 	if err != nil {
-		return errors.New("Failed to publish event")
+		return err
 	}
 	return nil
 }
@@ -78,7 +78,7 @@ func (q *RabbitQueue) ConsumeEvent(ctx context.Context) (string, error) {
 		return "", ctx.Err()
 	case msg, ok := <-q.deliveries:
 		if !ok {
-			return "", errors.New("delivery channel closed")
+			return "", fmt.Errorf("%w", domain.ErrConsumeEvent)
 		}
 		q.msg = msg
 		return string(msg.Body), nil
@@ -87,7 +87,7 @@ func (q *RabbitQueue) ConsumeEvent(ctx context.Context) (string, error) {
 
 func (q *RabbitQueue) AckEvent() error {
 	if q.msg.DeliveryTag == 0 {
-		return errors.New("No message to Ack")
+		return fmt.Errorf("%w", domain.ErrAckEvent)
 	}
 	err := q.msg.Ack(false)
 	if err != nil {
@@ -98,7 +98,7 @@ func (q *RabbitQueue) AckEvent() error {
 
 func (q *RabbitQueue) NackEvent() error {
 	if q.msg.DeliveryTag == 0 {
-		return errors.New("No message to nack")
+		return fmt.Errorf("%w", domain.ErrNackEvent)
 	}
 	err := q.msg.Nack(false, true)
 	if err != nil {
