@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"NotificationService/internal/domain"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
