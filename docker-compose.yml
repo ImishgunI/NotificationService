@@ -6,8 +6,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-    environment:
-      RABBITMQ_CONNECTION_STRING: "amqp://guest:guest@localhost:5672/"  
+    env_file:
+      - .env 
     volumes:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq/
@@ -21,10 +21,11 @@ services:
       - pgdata:/var/lib/postgresql
     ports:
       - "5432:5432"
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: notification_service_db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $(POSTGRES_USER) -d $(POSTGRES_DB)"]
       interval: 10s
@@ -35,11 +36,32 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: always
+    env_file:
+      - .env
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  app:
+    depends_on:
+      - rabbitmq
+      - postgres
+      - redis
+    build: .
+    container_name: notification_service
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
 
 volumes:
   redis_data:
