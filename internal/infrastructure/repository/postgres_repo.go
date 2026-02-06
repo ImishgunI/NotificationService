@@ -26,8 +26,8 @@ func (p *Repository) CloseDB() {
 }
 
 func (p *Repository) SaveEvent(ctx context.Context, e *domain.Event) error {
-	_, err := p.pool.Query(ctx,
-		`INSERT INTO events (key, status, payload) VALUES ($1, $2, $3)`,
+	_, err := p.pool.Exec(ctx,
+		`INSERT INTO events (event_key, status, payload) VALUES ($1, $2, $3)`,
 		e.GetKey(), e.GetStatus(), e.GetPayload())
 	if err != nil {
 		return err
@@ -43,7 +43,7 @@ func (p *Repository) GetEvent(ctx context.Context, key string) (domain.Event, er
 	)
 	err := p.pool.QueryRow(ctx, `
 		SELECT status, payload FROM events
-		WHERE key = $1
+		WHERE event_key = $1
 	`, key).Scan(&status, &payload)
 	if err != nil {
 		return domain.Event{}, err
@@ -55,10 +55,10 @@ func (p *Repository) GetEvent(ctx context.Context, key string) (domain.Event, er
 }
 
 func (p *Repository) UpdateEventStatus(ctx context.Context, eventStatus domain.EventStatus, key string) error {
-	_, err := p.pool.Query(ctx, `
+	_, err := p.pool.Exec(ctx, `
 		UPDATE events
 		SET status = $1
-		WHERE key = $2
+		WHERE event_key = $2
 	`, eventStatus, key)
 	if err != nil {
 		return err
