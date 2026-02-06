@@ -49,6 +49,14 @@ func (e *Event) SetPayload(p any) {
 	e.payload = p
 }
 
+func (e *Event) SetKey(key string) {
+	e.key = key
+}
+
+func (e *Event) SetStatus(status EventStatus) {
+	e.status = status
+}
+
 func (e *Event) GetStatus() EventStatus {
 	return e.status
 }
