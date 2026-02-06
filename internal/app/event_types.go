@@ -62,7 +62,7 @@ func (pe *ProcessEvent) Execute() error {
 		return nil
 	}
 	event.Processing()
-	err = pe.Repo.UpdateEventStatus(event.GetStatus())
+	err = pe.Repo.UpdateEventStatus(context.Background(), event.GetStatus(), event.GetKey())
 	if err != nil {
 		pe.Queue.NackEvent()
 		return err
@@ -72,7 +72,7 @@ func (pe *ProcessEvent) Execute() error {
 		switch err.(type) {
 		case domain.BusinessError:
 			event.Failed()
-			pe.Repo.UpdateEventStatus(event.GetStatus())
+			pe.Repo.UpdateEventStatus(context.Background(), event.GetStatus(), event.GetKey())
 			pe.Queue.AckEvent()
 			return nil
 		case domain.RetryableError:
@@ -80,7 +80,7 @@ func (pe *ProcessEvent) Execute() error {
 			return err
 		case domain.InfrasractureError:
 			event.Reject()
-			pe.Repo.UpdateEventStatus(event.GetStatus())
+			pe.Repo.UpdateEventStatus(context.Background(), event.GetStatus(), event.GetKey())
 			pe.Queue.AckEvent()
 			return nil
 		default:
@@ -89,7 +89,7 @@ func (pe *ProcessEvent) Execute() error {
 		}
 	}
 	event.Done()
-	err = pe.Repo.UpdateEventStatus(event.GetStatus())
+	err = pe.Repo.UpdateEventStatus(context.Background(), event.GetStatus(), event.GetKey())
 	if err != nil {
 		return err
 	}
