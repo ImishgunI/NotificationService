@@ -21,15 +21,18 @@ func NewRedisClient(url string) (*RedisStore, error) {
 }
 
 func (r *RedisStore) CheckKey(ctx context.Context, key string) (bool, error) {
-	ok, err := r.client.Get(ctx, key).Bool()
-	if err != nil {
-		return ok, err
+	_, err := r.client.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return false, nil
 	}
-	return ok, nil
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *RedisStore) SaveKey(ctx context.Context, key string) error {
-	err := r.client.Set(ctx, "", key, 0).Err()
+	err := r.client.Set(ctx, key, "1", 0).Err()
 	if err != nil {
 		return err
 	}
