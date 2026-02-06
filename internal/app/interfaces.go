@@ -14,7 +14,7 @@ type IdempotencyStore interface {
 type EventRepository interface {
 	SaveEvent(ctx context.Context, e *domain.Event) error
 	GetEvent(ctx context.Context, key string) (domain.Event, error)
-	UpdateEventStatus(eventStatus domain.EventStatus) error
+	UpdateEventStatus(ctx context.Context, eventStatus domain.EventStatus, key string) error
 }
 
 type EventPublisher interface {
