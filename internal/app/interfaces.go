@@ -28,5 +28,5 @@ type EventQueue interface {
 }
 
 type EventHandler interface {
-	Handle(event *domain.Event) error
+	Handle(ctx context.Context, event *domain.Event) error
 }
