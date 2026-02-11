@@ -1,5 +1,7 @@
 package domain
 
+import "encoding/json"
+
 type EventStatus int
 
 const (
@@ -14,10 +16,10 @@ const (
 type Event struct {
 	key     string
 	status  EventStatus
-	payload any
+	payload json.RawMessage
 }
 
-func NewEvent(key string, payload any) *Event {
+func NewEvent(key string, payload json.RawMessage) *Event {
 	return &Event{
 		key:     key,
 		status:  NEW,
@@ -45,7 +47,7 @@ func (e *Event) Failed() {
 	e.status = FAILED
 }
 
-func (e *Event) SetPayload(p any) {
+func (e *Event) SetPayload(p json.RawMessage) {
 	e.payload = p
 }
 
