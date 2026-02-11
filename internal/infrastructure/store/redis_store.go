@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"log"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -18,6 +19,12 @@ func NewRedisClient(url string) (*RedisStore, error) {
 	return &RedisStore{
 		client: *redis.NewClient(opt),
 	}, nil
+}
+
+func (r *RedisStore) Close() {
+	if err := r.client.Close(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (r *RedisStore) CheckKey(ctx context.Context, key string) (bool, error) {
