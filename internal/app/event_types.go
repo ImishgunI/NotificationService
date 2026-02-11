@@ -46,9 +46,7 @@ func (ae *AcceptEvent) Execute(key string, payload any) error {
 	return nil
 }
 
-func (pe *ProcessEvent) Execute() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (pe *ProcessEvent) Execute(ctx context.Context) error {
 	key, err := pe.Queue.ConsumeEvent(ctx)
 	if err != nil {
 		return err
@@ -67,7 +65,7 @@ func (pe *ProcessEvent) Execute() error {
 		pe.Queue.NackEvent()
 		return err
 	}
-	err = pe.Handler.Handle(&event)
+	err = pe.Handler.Handle(ctx, &event)
 	if err != nil {
 		switch err.(type) {
 		case domain.BusinessError:
