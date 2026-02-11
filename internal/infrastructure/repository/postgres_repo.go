@@ -3,6 +3,7 @@ package repository
 import (
 	"NotificationService/internal/domain"
 	"context"
+	"encoding/json"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -39,7 +40,7 @@ func (p *Repository) GetEvent(ctx context.Context, key string) (domain.Event, er
 	e := domain.Event{}
 	var (
 		status  domain.EventStatus
-		payload any
+		payload json.RawMessage
 	)
 	err := p.pool.QueryRow(ctx, `
 		SELECT status, payload FROM events
