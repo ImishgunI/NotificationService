@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"NotificationService/internal/domain"
@@ -19,7 +20,7 @@ type ProcessEvent struct {
 	Handler EventHandler
 }
 
-func (ae *AcceptEvent) Execute(key string, payload any) error {
+func (ae *AcceptEvent) Execute(key string, payload json.RawMessage) error {
 	ok, err := ae.IdemStore.CheckKey(context.Background(), key)
 	if err != nil {
 		return err
