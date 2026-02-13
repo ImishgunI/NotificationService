@@ -21,8 +21,19 @@ func NewRabbitQueue(ch *amqp.Channel, queue string) (*RabbitQueue, error) {
 	if err := ch.Qos(1, 0, false); err != nil {
 		return nil, err
 	}
-	msgs, err := ch.Consume(
+	q, err := ch.QueueDeclare(
 		queue,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+	msgs, err := ch.Consume(
+		q.Name,
 		"",
 		false,
 		false,
@@ -40,12 +51,12 @@ func NewRabbitQueue(ch *amqp.Channel, queue string) (*RabbitQueue, error) {
 	}, nil
 }
 
-func NewConn(connection string) *amqp.Connection {
+func NewConn(connection string) (*amqp.Connection, error) {
 	conn, err := amqp.Dial(connection)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return conn
+	return conn, nil
 }
 
 func (q *RabbitQueue) CloseConnection(conn *amqp.Connection) {
