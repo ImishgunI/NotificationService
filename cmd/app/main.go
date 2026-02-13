@@ -7,6 +7,7 @@ import (
 	"NotificationService/internal/infrastructure/queue"
 	"NotificationService/internal/infrastructure/repository"
 	"NotificationService/internal/infrastructure/store"
+	"NotificationService/utils"
 	"context"
 	"log"
 	"os"
@@ -14,9 +15,13 @@ import (
 	"syscall"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/spf13/viper"
 )
 
 func main() {
+	if err := utils.Init(); err != nil {
+		log.Fatalf("%v", err)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalChan := make(chan os.Signal, 1)
@@ -27,29 +32,28 @@ func main() {
 		log.Printf("Signal shutdown recieved")
 		cancel()
 	}()
-	store, err := store.NewRedisClient(os.Getenv("REDIS_URL"))
+	store, err := store.NewRedisClient(store.GetUrlString())
 	if err != nil {
-		log.Printf("%v", err)
-		cancel()
+		log.Fatalf("%v", err)
 	}
 	defer store.Close()
 	repo, err := repository.NewPoolPG(ctx, os.Getenv("POSTGRES_URL"))
 	if err != nil {
-		log.Printf("%v", err)
-		cancel()
+		log.Fatalf("%v", err)
 	}
 	defer repo.CloseDB()
 
-	conn := queue.NewConn(os.Getenv("RABBITMQ_CONNECTION_STRING"))
+	conn, err := queue.NewConn(viper.GetString("RABBITMQ_CONNECTION_STRING"))
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Printf("%v", err)
-		cancel()
+		log.Fatalf("%v", err)
 	}
 	queue, err := queue.NewRabbitQueue(ch, "EventQueue")
 	if err != nil {
-		log.Printf("%v", err)
-		cancel()
+		log.Fatalf("%v", err)
 	}
 	defer func() {
 		queue.CloseChannel()
