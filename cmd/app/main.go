@@ -3,6 +3,7 @@ package main
 import (
 	"NotificationService/internal/app"
 	"NotificationService/internal/http"
+	"NotificationService/internal/infrastructure/handler"
 	"NotificationService/internal/infrastructure/queue"
 	"NotificationService/internal/infrastructure/repository"
 	"NotificationService/internal/infrastructure/store"
@@ -54,6 +55,7 @@ func main() {
 		queue.CloseChannel()
 		queue.CloseConnection(conn)
 	}()
+	handler := &handler.Dispatcher{}
 
 	router := fiber.New()
 	acceptEvent := &app.AcceptEvent{
@@ -65,26 +67,25 @@ func main() {
 	router.Post("/events", request.CreateEvent)
 
 	processEvent := &app.ProcessEvent{
-		Repo:  repo,
-		Queue: queue,
+		Repo:    repo,
+		Queue:   queue,
+		Handler: handler,
 	}
 	log.Println("Server start on port 3000")
+	log.Fatalf("%v", router.Listen(":3000"))
 	go func() {
-		log.Fatalf("%v", router.Listen(":3000"))
-	}()
-
-	log.Printf("Worker started")
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Printf("worker stopped")
-			return
-		default:
-			err := processEvent.Execute(ctx)
-			if err != nil {
-				log.Println("process error: ", err)
+		log.Printf("Worker started")
+		for {
+			select {
+			case <-ctx.Done():
+				log.Printf("worker stopped")
+				return
+			default:
+				err := processEvent.Execute(ctx)
+				if err != nil {
+					log.Println("process error: ", err)
+				}
 			}
 		}
-	}
+	}()
 }
