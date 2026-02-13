@@ -5,7 +5,7 @@ lint:
 	golangci-lint run --config ./.golangci.yml
 
 docker-run:
-	docker compose up -d
+	docker compose up
 
 docker-stop:
 	docker compose stop
