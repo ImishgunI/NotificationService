@@ -63,7 +63,7 @@ func (e *Event) GetStatus() EventStatus {
 	return e.status
 }
 
-func (e *Event) GetPayload() any {
+func (e *Event) GetPayload() json.RawMessage {
 	return e.payload
 }
 
