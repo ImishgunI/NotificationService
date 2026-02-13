@@ -3,21 +3,12 @@ package store
 import (
 	"context"
 	"log"
-	"strings"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/spf13/viper"
 )
 
 type RedisStore struct {
 	client redis.Client
-}
-
-func GetUrlString() string {
-	sb := strings.Builder{}
-	sb.Grow(1)
-	sb.WriteString("redis://:" + viper.GetString("REDIS_PASSWORD") + "@" + viper.GetString("REDIS_HOST") + ":" + viper.GetString("REDIS_PORT") + "/" + viper.GetString("REDIS_DB_NUM"))
-	return sb.String()
 }
 
 func NewRedisClient(url string) (*RedisStore, error) {
