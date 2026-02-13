@@ -1,13 +1,18 @@
 services:
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq
+    container_name: rabbitmq_con
     restart: always
     ports:
       - "5672:5672"
       - "15672:15672"
     env_file:
-      - .env 
+      - .env
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
       - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq/
@@ -27,7 +32,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_DB: ${POSTGRES_DB}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $(POSTGRES_USER) -d $(POSTGRES_DB)"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 10s
       timeout: 5s 
       retries: 5 
@@ -35,6 +40,7 @@ services:
 
   redis:
     image: redis:7.4-alpine
+    container_name: redis_con
     restart: always
     env_file:
       - .env
@@ -53,17 +59,22 @@ services:
 
   app:
     depends_on:
-      - rabbitmq
-      - postgres
-      - redis
-    build: .
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     container_name: notification_service
+    build: .
+    environment:
+      REDIS_URL: ${REDIS_URL}
+      POSTGRES_URL: ${POSTGRES_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL} 
     env_file:
       - .env
-    ports:
-      - "8080:8080"
-
+    
 volumes:
   redis_data:
-    driver: local 
+    driver: local
   pgdata:
