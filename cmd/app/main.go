@@ -7,7 +7,6 @@ import (
 	"NotificationService/internal/infrastructure/queue"
 	"NotificationService/internal/infrastructure/repository"
 	"NotificationService/internal/infrastructure/store"
-	"NotificationService/utils"
 	"context"
 	"log"
 	"os"
@@ -19,9 +18,7 @@ import (
 )
 
 func main() {
-	if err := utils.Init(); err != nil {
-		log.Fatalf("%v", err)
-	}
+	viper.AutomaticEnv()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalChan := make(chan os.Signal, 1)
@@ -32,18 +29,17 @@ func main() {
 		log.Printf("Signal shutdown recieved")
 		cancel()
 	}()
-	store, err := store.NewRedisClient(store.GetUrlString())
+	idem_store, err := store.NewRedisClient(viper.GetString("REDIS_URL"))
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	defer store.Close()
-	repo, err := repository.NewPoolPG(ctx, os.Getenv("POSTGRES_URL"))
+	defer idem_store.Close()
+	repo, err := repository.NewPoolPG(ctx, viper.GetString("POSTGRES_URL"))
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 	defer repo.CloseDB()
-
-	conn, err := queue.NewConn(viper.GetString("RABBITMQ_CONNECTION_STRING"))
+	conn, err := queue.NewConn(viper.GetString("RABBITMQ_URL"))
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -63,7 +59,7 @@ func main() {
 
 	router := fiber.New()
 	acceptEvent := &app.AcceptEvent{
-		IdemStore: store,
+		IdemStore: idem_store,
 		Repo:      repo,
 		Publisher: queue,
 	}
