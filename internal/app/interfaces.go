@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 
 	"NotificationService/internal/domain"
 )
@@ -28,5 +29,5 @@ type EventQueue interface {
 }
 
 type EventHandler interface {
-	Handle(ctx context.Context, event *domain.Event) error
+	Handle(ctx context.Context, payload json.RawMessage) error
 }

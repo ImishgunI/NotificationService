@@ -66,7 +66,7 @@ func (pe *ProcessEvent) Execute(ctx context.Context) error {
 		pe.Queue.NackEvent()
 		return err
 	}
-	err = pe.Handler.Handle(ctx, &event)
+	err = pe.Handler.Handle(ctx, event.GetPayload())
 	if err != nil {
 		switch err.(type) {
 		case domain.BusinessError:
