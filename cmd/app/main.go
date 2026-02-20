@@ -1,24 +1,24 @@
 package main
 
 import (
-	"NotificationService/internal/app"
-	"NotificationService/internal/http"
-	"NotificationService/internal/infrastructure/handler"
-	"NotificationService/internal/infrastructure/queue"
-	"NotificationService/internal/infrastructure/repository"
-	"NotificationService/internal/infrastructure/store"
 	"context"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"NotificationService/internal/app"
+	"NotificationService/internal/http"
+	"NotificationService/internal/infrastructure/handler"
+	q "NotificationService/internal/infrastructure/queue"
+	"NotificationService/internal/infrastructure/repository"
+	"NotificationService/internal/infrastructure/store"
 	"github.com/gofiber/fiber/v3"
+	"github.com/rabbitmq/amqp091-go"
 	"github.com/spf13/viper"
 )
 
 func main() {
-	viper.AutomaticEnv()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalChan := make(chan os.Signal, 1)
@@ -29,32 +29,19 @@ func main() {
 		log.Printf("Signal shutdown recieved")
 		cancel()
 	}()
-	idem_store, err := store.NewRedisClient(viper.GetString("REDIS_URL"))
+	conn, err := q.NewConn(viper.GetString("RABBITMQ_URL"))
 	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	defer idem_store.Close()
-	repo, err := repository.NewPoolPG(ctx, viper.GetString("POSTGRES_URL"))
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	defer repo.CloseDB()
-	conn, err := queue.NewConn(viper.GetString("RABBITMQ_URL"))
-	if err != nil {
-		log.Fatalf("%v", err)
+		log.Printf("%v", err)
 	}
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalf("%v", err)
+		log.Printf("%v", err)
 	}
-	queue, err := queue.NewRabbitQueue(ch, "EventQueue")
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-	defer func() {
-		queue.CloseChannel()
-		queue.CloseConnection(conn)
-	}()
+	idem_store, repo, queue := create(ctx, ch)
+	defer idem_store.Close()
+	defer repo.CloseDB()
+	defer queue.CloseChannel()
+	defer queue.CloseConnection(conn)
 	handler := &handler.Dispatcher{}
 
 	router := fiber.New()
@@ -72,20 +59,40 @@ func main() {
 		Handler: handler,
 	}
 	log.Println("Server start on port 3000")
-	log.Fatalf("%v", router.Listen(":3000"))
 	go func() {
-		log.Printf("Worker started")
-		for {
-			select {
-			case <-ctx.Done():
-				log.Printf("worker stopped")
-				return
-			default:
-				err := processEvent.Execute(ctx)
-				if err != nil {
-					log.Println("process error: ", err)
-				}
+		log.Fatalf("%v", router.Listen(":3000"))
+	}()
+	log.Printf("Worker started")
+	for {
+		select {
+		case <-ctx.Done():
+			log.Printf("worker stopped")
+			return
+		default:
+			err := processEvent.Execute(ctx)
+			if err != nil {
+				log.Println("process error: ", err)
 			}
 		}
-	}()
+	}
+}
+
+func create(
+	ctx context.Context,
+	ch *amqp091.Channel,
+) (*store.RedisStore, *repository.Repository, *q.RabbitQueue) {
+	viper.AutomaticEnv()
+	idem_store, err := store.NewRedisClient(viper.GetString("REDIS_URL"))
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	repo, err := repository.NewPoolPG(ctx, viper.GetString("POSTGRES_URL"))
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	queue, err := q.NewRabbitQueue(ch, "EventQueue")
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	return idem_store, repo, queue
 }

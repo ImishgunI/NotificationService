@@ -2,7 +2,6 @@ package http
 
 import (
 	"NotificationService/internal/app"
-
 	"github.com/gofiber/fiber/v3"
 )
 

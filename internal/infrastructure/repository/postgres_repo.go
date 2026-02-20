@@ -1,10 +1,10 @@
 package repository
 
 import (
-	"NotificationService/internal/domain"
 	"context"
 	"encoding/json"
 
+	"NotificationService/internal/domain"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -55,7 +55,11 @@ func (p *Repository) GetEvent(ctx context.Context, key string) (domain.Event, er
 	return e, nil
 }
 
-func (p *Repository) UpdateEventStatus(ctx context.Context, eventStatus domain.EventStatus, key string) error {
+func (p *Repository) UpdateEventStatus(
+	ctx context.Context,
+	eventStatus domain.EventStatus,
+	key string,
+) error {
 	_, err := p.pool.Exec(ctx, `
 		UPDATE events
 		SET status = $1

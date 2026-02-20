@@ -38,5 +38,5 @@ var (
 	ErrConsumeEvent     = errors.New("Failed to consume event")
 	ErrAckEvent         = errors.New("Failed to ack event. DeliveryTag equals to zero")
 	ErrNackEvent        = errors.New("Failed to nack event. DeliveryTag equals to zero")
-	ErrUnknownEventType = errors.New("Unknown event type")
+	ErrUnknownEventType = errors.New("unknown event type")
 )

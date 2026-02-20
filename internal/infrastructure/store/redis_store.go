@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	"github.com/redis/go-redis/v9"
@@ -29,7 +30,7 @@ func (r *RedisStore) Close() {
 
 func (r *RedisStore) CheckKey(ctx context.Context, key string) (bool, error) {
 	_, err := r.client.Get(ctx, key).Result()
-	if err == redis.Nil {
+	if errors.Is(err, redis.Nil) {
 		return false, nil
 	}
 	if err != nil {

@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"NotificationService/internal/domain"
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"NotificationService/internal/domain"
 )
 
 type BaseEvent struct {
